@@ -123,7 +123,7 @@ sisyphus_task(
 
 # Alternative: Use specific agent instead of category
 sisyphus_task(
-    agent="coder",
+    agent="OpenCode-Builder",
     description="Execute task proj-ghi",
     prompt="..."
 )

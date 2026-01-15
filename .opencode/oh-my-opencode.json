@@ -28,8 +28,8 @@
         "model": "anthropic/claude-opus-4-5-20251101",
         "temperature": 0.2
       },
-      "coder": {
-        "model": "anthropic/claude-sonnet-4-5-20250514",
+      "OpenCode-Builder": {
+        "model": "minimax/MiniMax-M2.1",
         "temperature": 0.1
       }
     },

@@ -129,7 +129,7 @@ sisyphus_task(
 
 # Using specific agent
 sisyphus_task(
-    agent="coder",
+    agent="OpenCode-Builder",
     description="Execute task proj-def",
     prompt="Execute beads task proj-def..."
 )
