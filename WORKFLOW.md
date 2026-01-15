@@ -1,0 +1,276 @@
+# Parallel Task Orchestration Workflow
+
+This document describes how to use the parallel task orchestration system for multi-agent task execution.
+
+## Prerequisites
+
+1. **Beads CLI** (`bd`) - AI-native issue tracking
+2. **Beads Viewer** (`bv`) - Graph-aware triage engine
+3. **OpenSpec CLI** (`openspec`) - Spec-driven development
+4. **MCP Agent Mail** - Agent coordination server at `http://127.0.0.1:8765/mcp/`
+5. **Git** with worktree support
+
+## Quick Setup
+
+```bash
+# 1. Initialize beads (if not already done)
+bd init
+
+# 2. Initialize OpenSpec (if not already done)
+openspec init
+
+# 3. Install git hooks for beads
+bd hooks install
+
+# 4. Verify setup
+bd doctor
+openspec list
+bv --robot-triage
+```
+
+## Workflow Overview
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     USER REQUEST                                 │
+│         "Add user authentication feature"                        │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  STEP 1: /spec-planner                                          │
+│  ├─ Create OpenSpec proposal (proposal.md, tasks.md, specs/)    │
+│  ├─ Create beads issues with dependencies                       │
+│  ├─ Run bv --robot-insights for validation                      │
+│  └─ STOP - Present plan for approval                            │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                    [User approves]
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  STEP 2: /batch-orchestration                                   │
+│  ├─ Run bv --robot-plan for parallel tracks                     │
+│  ├─ Select up to 4 non-conflicting tasks                        │
+│  ├─ Present batch for approval                                  │
+│  └─ Spawn parallel coder agents                                 │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+            ┌─────────────────┼─────────────────┐
+            ▼                 ▼                 ▼
+┌───────────────────┐ ┌───────────────────┐ ┌───────────────────┐
+│  Coder Agent 1    │ │  Coder Agent 2    │ │  Coder Agent 3    │
+│  /task-execution  │ │  /task-execution  │ │  /task-execution  │
+│  ├─ Claim task    │ │  ├─ Claim task    │ │  ├─ Claim task    │
+│  ├─ Create wktree │ │  ├─ Create wktree │ │  ├─ Create wktree │
+│  ├─ Reserve files │ │  ├─ Reserve files │ │  ├─ Reserve files │
+│  ├─ Implement     │ │  ├─ Implement     │ │  ├─ Implement     │
+│  ├─ Commit        │ │  ├─ Commit        │ │  ├─ Commit        │
+│  └─ Report done   │ │  └─ Report done   │ │  └─ Report done   │
+└───────────────────┘ └───────────────────┘ └───────────────────┘
+            │                 │                 │
+            └─────────────────┼─────────────────┘
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  STEP 3: /merge-coordinator                                     │
+│  ├─ Merge worktrees sequentially                                │
+│  ├─ Handle conflicts (stop for complex ones)                    │
+│  ├─ Run validation (lsp_diagnostics, build, tests)              │
+│  ├─ Cleanup worktrees                                           │
+│  └─ Close beads issues, run bd sync                             │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  REPEAT: More tasks remaining?                                  │
+│  └─ Run /batch-orchestration again for next batch               │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+## Step-by-Step Usage
+
+### 1. Create a Spec Proposal
+
+When you have a feature request:
+
+```
+User: "I want to add user authentication with JWT tokens"
+
+Sisyphus: [Invokes /spec-planner skill]
+- Creates openspec/changes/add-user-auth/
+- Creates beads issues for each task
+- Presents plan for approval
+```
+
+### 2. Approve and Execute
+
+After reviewing the plan:
+
+```
+User: "Looks good, execute the tasks"
+
+Sisyphus: [Invokes /batch-orchestration skill]
+- Selects up to 4 ready tasks
+- Presents batch for approval
+- After approval, spawns parallel coder agents via sisyphus_task
+```
+
+### Agent Spawning
+
+Sisyphus uses `sisyphus_task` to spawn parallel agents:
+
+```python
+# Using category (recommended)
+sisyphus_task(
+    category="task-execution",
+    description="Execute task proj-abc",
+    prompt="Execute beads task proj-abc using /task-execution skill..."
+)
+
+# Using specific agent
+sisyphus_task(
+    agent="coder",
+    description="Execute task proj-def",
+    prompt="Execute beads task proj-def..."
+)
+```
+
+**sisyphus_task parameters:**
+- `category`: Use predefined category (e.g., "task-execution", "spec-changes")
+- `agent`: Use specific agent (e.g., "coder", "oracle", "librarian")
+- `description`: Short task description
+- `prompt`: Detailed instructions for the agent
+
+### 3. Monitor Progress
+
+Each coder agent:
+- Works in isolated worktree
+- Reserves files via Agent Mail
+- Commits changes independently
+- Reports completion
+
+### 4. Merge and Continue
+
+After agents complete:
+- Sisyphus merges worktrees
+- Closes completed beads issues
+- Reports summary
+- Continues with next batch if tasks remain
+
+## Key Commands
+
+### Beads (Issue Tracking)
+```bash
+bd ready              # Show tasks ready to work
+bd show <id>          # View task details
+bd update <id> --status in_progress  # Claim task
+bd close <id>         # Complete task
+bd sync               # Sync with git
+```
+
+### Beads Viewer (Triage)
+```bash
+bv --robot-triage     # Get recommendations
+bv --robot-plan       # Get parallel execution tracks
+bv --robot-insights   # Full graph analysis
+bv --robot-next       # Single top pick
+```
+
+### OpenSpec
+```bash
+openspec list         # Active changes
+openspec list --specs # Existing specs
+openspec validate <id> --strict  # Validate change
+openspec archive <id> --yes      # Archive completed change
+```
+
+### Git Worktrees
+```bash
+git worktree list                    # List worktrees
+git worktree add ../wt-<id> -b task/<id>  # Create worktree
+git worktree remove ../wt-<id>       # Remove worktree
+```
+
+## Configuration
+
+### oh-my-opencode.json
+
+The `coder` agent and categories are configured in `.opencode/oh-my-opencode.json`:
+
+```json
+{
+  "agents": {
+    "coder": {
+      "model": "anthropic/claude-sonnet-4-5-20250514",
+      "temperature": 0.1
+    }
+  },
+  "categories": {
+    "spec-changes": {
+      "model": "anthropic/claude-opus-4-5-20251101",
+      "temperature": 0.2,
+      "prompt_append": "Use /spec-planner skill..."
+    },
+    "task-execution": {
+      "model": "anthropic/claude-sonnet-4-5-20250514",
+      "temperature": 0.1,
+      "prompt_append": "Use /task-execution skill..."
+    }
+  }
+}
+```
+
+### Agent Mail
+
+Configure in `.opencode/opencode.json`:
+
+```json
+{
+  "mcp": {
+    "mcp-agent-mail": {
+      "type": "remote",
+      "url": "http://127.0.0.1:8765/mcp/",
+      "headers": {
+        "Authorization": "Bearer <your-token>"
+      },
+      "enabled": true
+    }
+  }
+}
+```
+
+## Troubleshooting
+
+### Worktree Issues
+```bash
+# List all worktrees
+git worktree list
+
+# Force remove stuck worktree
+git worktree remove --force ../worktree-<id>
+
+# Prune stale references
+git worktree prune
+```
+
+### Beads Sync Issues
+```bash
+# Check beads health
+bd doctor
+
+# Force sync
+bd sync --force
+```
+
+### Agent Mail Issues
+- Ensure server is running at configured URL
+- Check Bearer token is valid
+- Verify project is registered: `mcp-agent-mail_ensure_project`
+
+## Best Practices
+
+1. **Keep tasks focused** - Each task should be completable in one session
+2. **Avoid file conflicts** - Don't select tasks that touch the same files
+3. **Review before approval** - Always review the batch before execution
+4. **Monitor progress** - Check Agent Mail for status updates
+5. **Handle failures gracefully** - Failed tasks leave worktrees intact for debugging
