@@ -88,9 +88,9 @@ mcp-agent-mail_register_agent(
 Spawn ALL agents in a **single response** for parallel execution using `sisyphus_task`:
 
 ```python
-# Agent 1 - using category for task-execution
+# Agent 1
 sisyphus_task(
-    category="task-execution",
+    agent="OpenCode-Builder",
     description="Execute task proj-abc",
     prompt="""
 Execute beads task proj-abc using /task-execution skill.
@@ -112,26 +112,18 @@ Follow the /task-execution skill workflow:
 """
 )
 
-# Agent 2 - using category
+# Agent 2
 sisyphus_task(
-    category="task-execution",
+    agent="OpenCode-Builder",
     description="Execute task proj-def",
     prompt="..."  # Similar prompt for proj-def
 )
 
 # Agent 3 and 4 similarly...
-
-# Alternative: Use specific agent instead of category
-sisyphus_task(
-    agent="OpenCode-Builder",
-    description="Execute task proj-ghi",
-    prompt="..."
-)
 ```
 
 **sisyphus_task parameters:**
-- `category`: Use predefined category (e.g., "task-execution", "spec-changes")
-- `agent`: Use specific agent (e.g., "coder", "oracle", "librarian")
+- `agent`: Agent to use (use `"OpenCode-Builder"` for task execution)
 - `description`: Short task description
 - `prompt`: Detailed instructions for the agent
 

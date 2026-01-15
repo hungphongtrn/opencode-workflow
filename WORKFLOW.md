@@ -32,8 +32,8 @@ bv --robot-triage
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                     USER REQUEST                                 │
-│         "Add user authentication feature"                        │
+│                     USER REQUEST                                │
+│         "Add user authentication feature"                       │
 └─────────────────────────────────────────────────────────────────┘
                               │
                               ▼
@@ -120,24 +120,15 @@ Sisyphus: [Invokes /batch-orchestration skill]
 Sisyphus uses `sisyphus_task` to spawn parallel agents:
 
 ```python
-# Using category (recommended)
-sisyphus_task(
-    category="task-execution",
-    description="Execute task proj-abc",
-    prompt="Execute beads task proj-abc using /task-execution skill..."
-)
-
-# Using specific agent
 sisyphus_task(
     agent="OpenCode-Builder",
-    description="Execute task proj-def",
-    prompt="Execute beads task proj-def..."
+    description="Execute task proj-abc",
+    prompt="Execute beads task proj-abc using /task-execution skill..."
 )
 ```
 
 **sisyphus_task parameters:**
-- `category`: Use predefined category (e.g., "task-execution", "spec-changes")
-- `agent`: Use specific agent (e.g., "coder", "oracle", "librarian")
+- `agent`: Agent to use (use `"OpenCode-Builder"` for task execution)
 - `description`: Short task description
 - `prompt`: Detailed instructions for the agent
 
