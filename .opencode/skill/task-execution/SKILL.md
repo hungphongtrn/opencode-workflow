@@ -14,6 +14,7 @@ Execute a single beads task in an isolated git worktree.
 ## Prerequisites
 
 - Task ID provided (e.g., `opencode-workflow-abc`)
+- **Orchestrator Name** provided (e.g., `BoldMarsh`) - the agent to send messages back to
 - MCP Agent Mail server running at `http://127.0.0.1:8765/mcp/`
 - Git repository with worktree support
 
@@ -117,13 +118,14 @@ mcp-agent-mail_release_file_reservations(
 
 ### 8. Report Completion
 
-Send completion message to Sisyphus:
+Send completion message to the **Orchestrator** (use the name provided in your prompt, NOT "Sisyphus"):
 
 ```python
+# ORCHESTRATOR_NAME is provided in your task prompt (e.g., "BoldMarsh")
 mcp-agent-mail_send_message(
     project_key="/path/to/project",
     sender_name="<YourAgentName>",
-    to=["Sisyphus"],
+    to=["<ORCHESTRATOR_NAME>"],  # Use the name from your prompt!
     subject="Task <TASK_ID> Complete",
     body_md="""
 ## Task Completed: <TASK_ID>
@@ -158,10 +160,11 @@ If task cannot be completed:
 3. Send failure message:
 
 ```python
+# ORCHESTRATOR_NAME is provided in your task prompt (e.g., "BoldMarsh")
 mcp-agent-mail_send_message(
     project_key="/path/to/project",
     sender_name="<YourAgentName>",
-    to=["Sisyphus"],
+    to=["<ORCHESTRATOR_NAME>"],  # Use the name from your prompt!
     subject="Task <TASK_ID> FAILED",
     importance="high",
     body_md="""
@@ -184,4 +187,4 @@ mcp-agent-mail_send_message(
 - **No scope creep**: If you discover related work, note it but don't do it
 - **Always reserve**: Never edit files without reservation
 - **Always release**: Release reservations even on failure
-- **Always report**: Send completion/failure message to Sisyphus
+- **Always report**: Send completion/failure message to the **Orchestrator** (name provided in your prompt)

@@ -74,32 +74,37 @@ mcp-agent-mail_ensure_project(
     human_key="/absolute/path/to/project"
 )
 
-# Register as Sisyphus (the orchestrator identity)
-# IMPORTANT: Use name="Sisyphus" so coder agents can send messages back
-mcp-agent-mail_register_agent(
+# Register as orchestrator - NOTE: name is auto-generated (e.g., "BoldMarsh")
+# SAVE the returned name to pass to subagents!
+result = mcp-agent-mail_register_agent(
     project_key="/absolute/path/to/project",
     program="opencode",
     model="opencode-default",
-    name="Sisyphus",
     task_description="Batch Orchestrator"
 )
+ORCHESTRATOR_NAME = result["name"]  # e.g., "BoldMarsh"
 ```
+
+**CRITICAL**: Save the `name` from the response. You MUST pass this to all subagents so they can send messages back to you.
 
 ### 5. Spawn Parallel Agents
 
-Spawn ALL agents in a **single response** for parallel execution using `sisyphus_task`:
+Spawn ALL agents in a **single response** for parallel execution using `sisyphus_task`.
+
+**IMPORTANT**: Include the orchestrator name in each agent's prompt so they know who to message.
 
 ```python
 # Agent 1
 sisyphus_task(
     agent="OpenCode-Builder",
     description="Execute task proj-abc",
-    prompt="""
+    prompt=f"""
 Execute beads task proj-abc using /task-execution skill.
 
 Task ID: proj-abc
 Worktree Path: .worktrees/worktree-proj-abc
 Project Path: /absolute/path/to/project
+Orchestrator Name: {ORCHESTRATOR_NAME}
 
 Follow the /task-execution skill workflow:
 1. Claim task with bd update
@@ -109,7 +114,7 @@ Follow the /task-execution skill workflow:
 5. Implement the task
 6. Commit changes
 7. Release reservations
-8. Send completion message to Sisyphus
+8. Send completion message to {ORCHESTRATOR_NAME} (NOT "Sisyphus")
 9. Report back with: task ID, commit SHA, files changed
 """
 )
@@ -118,7 +123,7 @@ Follow the /task-execution skill workflow:
 sisyphus_task(
     agent="OpenCode-Builder",
     description="Execute task proj-def",
-    prompt="..."  # Similar prompt for proj-def
+    prompt=f"... include Orchestrator Name: {ORCHESTRATOR_NAME} ..."
 )
 
 # Agent 3 and 4 similarly...
