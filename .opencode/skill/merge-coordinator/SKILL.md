@@ -26,7 +26,7 @@ Safely merge completed worktrees into the current branch.
 git worktree list
 
 # Verify each completed worktree exists
-ls ../worktree-<task-id>
+ls .worktrees/worktree-<task-id>
 ```
 
 ### 2. Pre-Merge Checks
@@ -34,7 +34,7 @@ ls ../worktree-<task-id>
 For each worktree:
 ```bash
 # Check the commit
-cd ../worktree-<task-id>
+cd .worktrees/worktree-<task-id>
 git log -1 --oneline
 
 # Verify clean state
@@ -137,7 +137,7 @@ After successful merge:
 
 ```bash
 # Remove the worktree
-git worktree remove ../worktree-<task-id>
+git worktree remove .worktrees/worktree-<task-id>
 
 # Optionally delete the branch
 git branch -d task/<task-id>
@@ -188,7 +188,7 @@ git reset --hard <pre-merge-sha>
 git worktree list
 
 # Force remove if needed
-git worktree remove --force ../worktree-<id>
+git worktree remove --force .worktrees/worktree-<id>
 
 # Prune stale worktree references
 git worktree prune

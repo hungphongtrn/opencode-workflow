@@ -3,34 +3,34 @@
 ## 1. Core Skills Implementation
 
 ### 1.1 Spec Planner Skill
-- [ ] 1.1.1 Create `.opencode/command/spec-planner.md` skill file
-- [ ] 1.1.2 Define workflow: read project context → create proposal → break into tasks
-- [ ] 1.1.3 Add beads integration: `bd create` for each task, `bd dep add` for dependencies
-- [ ] 1.1.4 Add `bv --robot-insights` validation step
-- [ ] 1.1.5 Add approval gate (STOP before implementation)
+- [x] 1.1.1 Create `.opencode/command/spec-planner.md` skill file
+- [x] 1.1.2 Define workflow: read project context → create proposal → break into tasks
+- [x] 1.1.3 Add beads integration: `bd create` for each task, `bd dep add` for dependencies
+- [x] 1.1.4 Add `bv --robot-insights` validation step
+- [x] 1.1.5 Add approval gate (STOP before implementation)
 
 ### 1.2 Task Execution Skill
-- [ ] 1.2.1 Create `.opencode/command/task-execution.md` skill file
-- [ ] 1.2.2 Define worktree creation: `git worktree add ../worktree-<id> -b task/<id>`
-- [ ] 1.2.3 Add Agent Mail file reservation integration
-- [ ] 1.2.4 Define implementation workflow with todo tracking
-- [ ] 1.2.5 Add commit and cleanup steps
-- [ ] 1.2.6 Define completion reporting format
+- [x] 1.2.1 Create `.opencode/command/task-execution.md` skill file
+- [x] 1.2.2 Define worktree creation: `git worktree add ../worktree-<id> -b task/<id>`
+- [x] 1.2.3 Add Agent Mail file reservation integration
+- [x] 1.2.4 Define implementation workflow with todo tracking
+- [x] 1.2.5 Add commit and cleanup steps
+- [x] 1.2.6 Define completion reporting format
 
 ### 1.3 Batch Orchestration Skill
-- [ ] 1.3.1 Create `.opencode/command/batch-orchestration.md` skill file
-- [ ] 1.3.2 Add `bv --robot-triage` and `bv --robot-plan` integration
-- [ ] 1.3.3 Define task selection logic (max 4, no conflicts)
-- [ ] 1.3.4 Add human approval gate with task summary
-- [ ] 1.3.5 Define parallel agent spawning via `task(subagent_type="general")`
-- [ ] 1.3.6 Add result collection and merge trigger
+- [x] 1.3.1 Create `.opencode/command/batch-orchestration.md` skill file
+- [x] 1.3.2 Add `bv --robot-triage` and `bv --robot-plan` integration
+- [x] 1.3.3 Define task selection logic (max 4, no conflicts)
+- [x] 1.3.4 Add human approval gate with task summary
+- [x] 1.3.5 Define parallel agent spawning via `task(subagent_type="general")`
+- [x] 1.3.6 Add result collection and merge trigger
 
 ### 1.4 Merge Coordinator Skill
-- [ ] 1.4.1 Create `.opencode/command/merge-coordinator.md` skill file
-- [ ] 1.4.2 Define sequential merge workflow
-- [ ] 1.4.3 Add conflict detection and human escalation
-- [ ] 1.4.4 Add worktree cleanup steps
-- [ ] 1.4.5 Add beads close and sync integration
+- [x] 1.4.1 Create `.opencode/command/merge-coordinator.md` skill file
+- [x] 1.4.2 Define sequential merge workflow
+- [x] 1.4.3 Add conflict detection and human escalation
+- [x] 1.4.4 Add worktree cleanup steps
+- [x] 1.4.5 Add beads close and sync integration
 
 ## 2. Agent Configuration
 
@@ -58,9 +58,9 @@
 ## 4. Documentation
 
 ### 4.1 Setup Guide
-- [ ] 4.1.1 Create `WORKFLOW.md` with manual setup instructions
-- [ ] 4.1.2 Document prerequisites (bd, bv, openspec, agent-mail)
-- [ ] 4.1.3 Add troubleshooting section
+- [x] 4.1.1 Create `WORKFLOW.md` with manual setup instructions
+- [x] 4.1.2 Document prerequisites (bd, bv, openspec, agent-mail)
+- [x] 4.1.3 Add troubleshooting section
 
 ---
 

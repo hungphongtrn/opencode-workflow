@@ -12,7 +12,7 @@ The system SHALL provide a `/task-execution` skill that executes a single beads 
 - **WHEN** a coder agent receives a task assignment
 - **THEN** the agent claims the task via `bd update <id> --status in_progress`
 - **AND** reads task details via `bd show <id>`
-- **AND** creates a worktree via `git worktree add ../worktree-<id> -b task/<id>`
+- **AND** creates a worktree via `git worktree add .worktrees/worktree-<id> -b task/<id>`
 - **AND** changes to the worktree directory for all subsequent operations
 
 #### Scenario: File reservation
@@ -51,7 +51,7 @@ The system SHALL ensure complete isolation between parallel coder agents via git
 
 #### Scenario: Worktree creation
 - **WHEN** a coder agent starts a task
-- **THEN** a new worktree is created at `../worktree-<task-id>`
+- **THEN** a new worktree is created at `.worktrees/worktree-<task-id>`
 - **AND** a new branch `task/<task-id>` is created from current HEAD
 - **AND** the worktree has its own working directory and index
 - **AND** changes in one worktree do not affect others

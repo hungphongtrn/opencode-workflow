@@ -56,9 +56,9 @@ The system SHALL provide a `/merge-coordinator` skill that safely merges complet
 #### Scenario: Sequential worktree merging
 - **WHEN** coder agents have completed their tasks
 - **THEN** the skill lists all completed worktrees with their commits
-- **AND** merges each worktree sequentially via `git merge worktree-<id> --no-ff`
+- **AND** merges each worktree sequentially via `git merge task/<id> --no-ff`
 - **AND** runs `lsp_diagnostics` after each merge
-- **AND** removes merged worktrees via `git worktree remove`
+- **AND** removes merged worktrees via `git worktree remove .worktrees/worktree-<id>`
 
 #### Scenario: Merge conflict handling
 - **WHEN** a merge conflict occurs

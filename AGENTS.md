@@ -1,24 +1,3 @@
-<!-- OPENSPEC:START -->
-# OpenSpec Instructions
-
-These instructions are for AI assistants working in this project.
-
-Always open `@/openspec/AGENTS.md` when the request:
-
-- Mentions planning or proposals (words like proposal, spec, change, plan)
-- Introduces new capabilities, breaking changes, architecture shifts, or big performance/security work
-- Sounds ambiguous and you need the authoritative spec before coding
-
-Use `@/openspec/AGENTS.md` to learn:
-
-- How to create and apply change proposals
-- Spec format and conventions
-- Project structure and guidelines
-
-Keep this managed block so 'openspec update' can refresh the instructions.
-
-<!-- OPENSPEC:END -->
-
 # Parallel Task Orchestration Workflow
 
 This project uses a multi-agent parallel execution system. Read `@/openspec/project.md` for project-specific context.
@@ -48,10 +27,10 @@ When receiving a request, classify it:
 If you are a coder agent spawned via `sisyphus_task`:
 
 1. **You have ONE task** - Focus only on your assigned task ID
-2. **Use worktree** - Work in `../worktree-<task-id>`, not main repo
+2. **Use worktree** - Work in `.worktrees/worktree-<task-id>`, not main repo
 3. **Reserve files** - Call `mcp-agent-mail_file_reservation_paths` before editing
 4. **Commit in worktree** - `git commit` in your worktree only
-5. **Report back** - Send completion message via Agent Mail, then return results
+5. **Report back** - Send completion message via Agent Mail to "Sisyphus", then return results
 6. **Do NOT merge** - Sisyphus handles merging
 
 ## Quick Reference

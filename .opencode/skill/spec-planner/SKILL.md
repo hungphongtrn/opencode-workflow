@@ -46,29 +46,73 @@ Task guidelines:
 - Mark clear boundaries between tasks
 - Maximum 4 parallel tasks per batch
 
-### 4. Create Beads Issues
+### 4. Create Beads Issues (MANDATORY)
+
+**CRITICAL**: You MUST create beads issues for EVERY task identified in tasks.md. Subagents will execute these tasks autonomously based solely on the issue description.
+
+#### Self-Explanatory Task Requirements
+
+Each task MUST be **self-contained** so a coder agent can complete it without asking questions:
+
+1. **Clear Title**: Action-oriented (e.g., "Add JWT validation middleware")
+2. **Complete Description** including:
+   - **What**: Specific deliverable (not vague goals)
+   - **Where**: Exact file paths to create/modify
+   - **How**: Key implementation approach or patterns to follow
+   - **References**: Links to related specs, design docs, or example code
+   - **Acceptance Criteria**: How to verify the task is complete
+
+#### Task Creation
 
 ```bash
-# Create issues for each task
-bd create "<Task title>" --type task --priority <0-4> \
-  --description="<What to do and which files>"
+# Create each task with comprehensive description
+bd create "<Action-oriented title>" --type task --priority <0-4> \
+  --description="## What
+<Specific deliverable>
+
+## Files
+- <path/to/file1.ts> - <what to do>
+- <path/to/file2.ts> - <what to do>
+
+## Approach
+<Key implementation details, patterns to follow>
+
+## References
+- See: openspec/changes/<change-id>/design.md
+- Pattern: src/existing/similar-feature.ts
+
+## Done When
+- [ ] <Verification step 1>
+- [ ] <Verification step 2>"
 
 # Add dependencies (child depends on parent)
 bd dep add <child-id> <parent-id>
 ```
 
-Priority mapping:
+#### Priority Mapping
 - P0: Critical/blocking
 - P1: High priority
 - P2: Medium (default)
 - P3: Low priority
 - P4: Backlog
 
+#### Verification (REQUIRED)
+
+After creating ALL tasks, verify they exist:
+```bash
+bd ready  # MUST show created tasks
+```
+
+**If `bd ready` shows no tasks, STOP and fix the issue before proceeding.**
+
 ### 5. Validate and Report
 
 ```bash
 # Validate OpenSpec
 openspec validate $CHANGE_ID --strict
+
+# VERIFY beads issues were created
+bd ready  # If empty, bd creation failed - fix before continuing
 
 # Get task graph insights
 bv --robot-insights
@@ -79,7 +123,7 @@ bv --robot-plan
 
 **Do NOT proceed to implementation.** Present:
 1. Summary of the proposal
-2. List of created beads issues with IDs
+2. List of created beads issues with IDs (from `bd ready`)
 3. Dependency graph visualization
 4. Recommended execution order from `bv --robot-next`
 

@@ -31,7 +31,7 @@ OpenCode workflow orchestration system that enables parallel multi-agent task ex
 
 ### Git Workflow
 - Main work on feature branches
-- Worktrees created as `../worktree-<task-id>` with branch `task/<id>`
+- Worktrees created as `.worktrees/worktree-<task-id>` with branch `task/<id>`
 - Merge back to feature branch after task completion
 - Beads syncs to `beads-sync` branch
 

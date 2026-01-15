@@ -74,11 +74,13 @@ mcp-agent-mail_ensure_project(
     human_key="/absolute/path/to/project"
 )
 
-# Register as orchestrator
+# Register as Sisyphus (the orchestrator identity)
+# IMPORTANT: Use name="Sisyphus" so coder agents can send messages back
 mcp-agent-mail_register_agent(
     project_key="/absolute/path/to/project",
     program="opencode",
-    model="claude-opus-4-5",
+    model="opencode-default",
+    name="Sisyphus",
     task_description="Batch Orchestrator"
 )
 ```
@@ -96,18 +98,18 @@ sisyphus_task(
 Execute beads task proj-abc using /task-execution skill.
 
 Task ID: proj-abc
-Worktree Path: ../worktree-proj-abc
+Worktree Path: .worktrees/worktree-proj-abc
 Project Path: /absolute/path/to/project
 
 Follow the /task-execution skill workflow:
 1. Claim task with bd update
-2. Create worktree
+2. Create worktree in .worktrees/
 3. Register with Agent Mail
 4. Reserve files before editing
 5. Implement the task
 6. Commit changes
 7. Release reservations
-8. Send completion message
+8. Send completion message to Sisyphus
 9. Report back with: task ID, commit SHA, files changed
 """
 )

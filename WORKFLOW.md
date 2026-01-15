@@ -178,8 +178,8 @@ openspec archive <id> --yes      # Archive completed change
 ### Git Worktrees
 ```bash
 git worktree list                    # List worktrees
-git worktree add ../wt-<id> -b task/<id>  # Create worktree
-git worktree remove ../wt-<id>       # Remove worktree
+git worktree add .worktrees/wt-<id> -b task/<id>  # Create worktree
+git worktree remove .worktrees/wt-<id>       # Remove worktree
 ```
 
 ## Configuration
@@ -238,7 +238,7 @@ Configure in `.opencode/opencode.json`:
 git worktree list
 
 # Force remove stuck worktree
-git worktree remove --force ../worktree-<id>
+git worktree remove --force .worktrees/worktree-<id>
 
 # Prune stale references
 git worktree prune

@@ -32,8 +32,9 @@ bd show <TASK_ID>
 ### 2. Setup Worktree
 
 ```bash
-# Create isolated worktree
-WORKTREE_PATH="../worktree-<TASK_ID>"
+# Create isolated worktree INSIDE the repo
+WORKTREE_PATH=".worktrees/worktree-<TASK_ID>"
+mkdir -p .worktrees
 git worktree add $WORKTREE_PATH -b task/<TASK_ID>
 
 # Change to worktree
@@ -47,7 +48,7 @@ cd $WORKTREE_PATH
 mcp-agent-mail_register_agent(
     project_key="/path/to/project",
     program="opencode-coder",
-    model="claude-sonnet-4-5",
+    model="opencode-default",
     task_description="Executing <TASK_ID>"
 )
 ```
