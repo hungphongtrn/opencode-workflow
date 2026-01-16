@@ -10,10 +10,10 @@
         "model": "google/gemini-3-flash"
       },
       "explore": {
-        "model": "minimax/MiniMax-M2.1"
+        "model": "opencode/grok-code"
       },
       "oracle": {
-        "model": "minimax/MiniMax-M2.1"
+        "model": "anthropic/claude-sonnet-4-5-20250514"
       },
       "frontend-ui-ux-engineer": {
         "model": "google/gemini-3-pro-high"
@@ -29,7 +29,7 @@
         "temperature": 0.2
       },
       "OpenCode-Builder": {
-        "model": "google/gemini-3-flash",
+        "model": "opencode/glm-4.7",
         "temperature": 0.1
       }
     },
