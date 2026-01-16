@@ -89,14 +89,16 @@ ORCHESTRATOR_NAME = result["name"]  # e.g., "BoldMarsh"
 
 ### 5. Spawn Parallel Agents
 
-Spawn ALL agents in a **single response** for parallel execution using `sisyphus_task`.
+Spawn ALL agents in a **single response** for parallel execution.
 
-**IMPORTANT**: Include the orchestrator name in each agent's prompt so they know who to message.
+**CRITICAL**: 
+- Use `task` tool with `subagent_type="OpenCode-Builder"` (NOT "general")
+- Include the orchestrator name in each agent's prompt
 
 ```python
-# Agent 1
-sisyphus_task(
-    agent="OpenCode-Builder",
+# Agent 1 - MUST use subagent_type="OpenCode-Builder"
+task(
+    subagent_type="OpenCode-Builder",  # REQUIRED: Always use "OpenCode-Builder", never "general"
     description="Execute task proj-abc",
     prompt=f"""
 Execute beads task proj-abc using /task-execution skill.
@@ -119,18 +121,18 @@ Follow the /task-execution skill workflow:
 """
 )
 
-# Agent 2
-sisyphus_task(
-    agent="OpenCode-Builder",
+# Agent 2 - MUST use subagent_type="OpenCode-Builder"
+task(
+    subagent_type="OpenCode-Builder",  # REQUIRED: Always use "OpenCode-Builder"
     description="Execute task proj-def",
     prompt=f"... include Orchestrator Name: {ORCHESTRATOR_NAME} ..."
 )
 
-# Agent 3 and 4 similarly...
+# Agent 3 and 4 similarly - ALL must use subagent_type="OpenCode-Builder"
 ```
 
-**sisyphus_task parameters:**
-- `agent`: Agent to use (use `"OpenCode-Builder"` for task execution)
+**task() parameters:**
+- `subagent_type`: **MUST be `"OpenCode-Builder"`** - Do NOT use "general"
 - `description`: Short task description
 - `prompt`: Detailed instructions for the agent
 
