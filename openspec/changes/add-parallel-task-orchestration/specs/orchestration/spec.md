@@ -38,7 +38,7 @@ The system SHALL provide a `/batch-orchestration` skill that coordinates paralle
 
 #### Scenario: Parallel agent spawning
 - **WHEN** user approves the selected tasks
-- **THEN** the skill spawns coder agents via `task(subagent_type="general")` in a single response
+- **THEN** the skill spawns coder agents via `task(subagent_type="OpenCode-Builder")` in a single response
 - **AND** each agent receives: task ID, worktree path, and `/task-execution` skill reference
 - **AND** all agents execute in parallel
 - **AND** the skill collects results from all agents

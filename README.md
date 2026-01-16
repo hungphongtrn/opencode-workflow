@@ -1,7 +1,7 @@
 # Parallel Task Orchestration Workflow
 
 > **Note for AI Agents**: This file is for human reference only.
-> Load the appropriate skill based on your role (see AGENTS.md).
+> Load the appropriate skill based on your role (see [AGENTS.md](AGENTS.md)).
 
 This document describes how to use the parallel task orchestration system for multi-agent task execution.
 
@@ -33,6 +33,8 @@ bv --robot-triage
 
 ## Workflow Overview
 
+The entire workflow is coordinated by the **Main Orchestrator** using the `/orchestrator` skill.
+
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                     USER REQUEST                                │
@@ -41,7 +43,7 @@ bv --robot-triage
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│  STEP 1: /spec-planner                                          │
+│  STEP 1: /spec-planner (via /orchestrator)                      │
 │  ├─ Create OpenSpec proposal (proposal.md, tasks.md, specs/)    │
 │  ├─ Define parallelizable tasks in tasks.md                     │
 │  ├─ Run openspec validate --strict                              │
@@ -52,13 +54,13 @@ bv --robot-triage
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│  STEP 2: /populate-task                                         │
+│  STEP 2: /populate-task (via /orchestrator)                     │
 │  ├─ Parse tasks.md and count unchecked tasks                    │
 │  ├─ Choose mode based on task count:                            │
 │  │   ├─ 1-4 tasks: Sequential (direct population)               │
 │  │   └─ 5+ tasks: Parallel Phase Population                     │
 │  │       ├─ Identify phases from ## sections                    │
-│  │       ├─ Spawn /task-populator agents per phase              │
+│  │       ├─ Spawn /populator agents per phase                   │
 │  │       │   ├─ Agent 1: Phase 1 (deep codebase analysis)       │
 │  │       │   ├─ Agent 2: Phase 2 (deep codebase analysis)       │
 │  │       │   └─ Agent N: Phase N (deep codebase analysis)       │
@@ -69,7 +71,7 @@ bv --robot-triage
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│  STEP 3: /batch-orchestration                                   │
+│  STEP 3: /batch-orchestration (via /orchestrator)               │
 │  ├─ Run bv --robot-plan for parallel tracks                     │
 │  ├─ Select up to 4 non-conflicting tasks                        │
 │  ├─ Present batch for approval                                  │
@@ -80,7 +82,7 @@ bv --robot-triage
             ▼                 ▼                 ▼
 ┌───────────────────┐ ┌───────────────────┐ ┌───────────────────┐
 │  Coder Agent 1    │ │  Coder Agent 2    │ │  Coder Agent 3    │
-│  /task-execution  │ │  /task-execution  │ │  /task-execution  │
+│  (/coder skill)   │ │  (/coder skill)   │ │  (/coder skill)   │
 │  ├─ Claim task    │ │  ├─ Claim task    │ │  ├─ Claim task    │
 │  ├─ Create wktree │ │  ├─ Create wktree │ │  ├─ Create wktree │
 │  ├─ Reserve files │ │  ├─ Reserve files │ │  ├─ Reserve files │
@@ -92,7 +94,7 @@ bv --robot-triage
             └─────────────────┼─────────────────┘
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│  STEP 4: /merge-coordinator                                     │
+│  STEP 4: /merge-coordinator (via /orchestrator)                 │
 │  ├─ Merge worktrees sequentially                                │
 │  ├─ Handle conflicts (stop for complex ones)                    │
 │  ├─ Run validation (lsp_diagnostics, build, tests)              │
@@ -116,7 +118,7 @@ When you have a feature request:
 ```
 User: "I want to add user authentication with JWT tokens"
 
-Sisyphus: [Invokes /spec-planner skill]
+Sisyphus: [Invokes /orchestrator -> /spec-planner]
 - Creates openspec/changes/add-user-auth/
 - Defines tasks in tasks.md
 - Presents plan for approval
@@ -129,18 +131,18 @@ After reviewing and approving the plan:
 ```
 User: "Looks good, populate the tasks"
 
-Sisyphus: [Invokes /populate-task skill]
+Sisyphus: [Invokes /orchestrator -> /populate-task]
 - Counts unchecked tasks in tasks.md
 - Chooses mode:
   - 1-4 tasks: Sequential population (direct)
-  - 5+ tasks: Parallel phase population (spawns /task-populator agents)
+  - 5+ tasks: Parallel phase population (spawns /populator agents)
 - Creates junior-dev-ready beads issues with deep codebase analysis
 - Reports created issues and dependency graph
 ```
 
 #### Parallel Phase Population (5+ tasks)
 
-For larger task sets, `/populate-task` spawns parallel `/task-populator` agents:
+For larger task sets, `/populate-task` spawns parallel `/populator` agents:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -153,6 +155,7 @@ For larger task sets, `/populate-task` spawns parallel `/task-populator` agents:
 │  ┌─────────┐      ┌─────────┐      ┌─────────┐            │     │
 │  │Phase 1  │      │Phase 2  │      │Phase 3  │            │     │
 │  │Populator│      │Populator│      │Populator│            │     │
+│  │(/populator)│   │(/populator)│   │(/populator)│            │     │
 │  │- Deep   │      │- Deep   │      │- Deep   │            │     │
 │  │  analysis│     │  analysis│     │  analysis│           │     │
 │  │- Code   │      │- Code   │      │- Code   │            │     │
@@ -180,41 +183,69 @@ After beads issues are created:
 ```
 User: "Execute the tasks"
 
-Sisyphus: [Invokes /batch-orchestration skill]
+Sisyphus: [Invokes /orchestrator -> /batch-orchestration]
 - Selects up to 4 ready tasks
 - Presents batch for approval
-- After approval, spawns parallel coder agents via task(subagent_type="OpenCode-Builder")
+- After approval, spawns parallel coder agents
 ```
 
 ### Agent Spawning
 
-Sisyphus uses `task()` with `subagent_type="OpenCode-Builder"` to spawn parallel agents:
+The Main Orchestrator uses `task()` to spawn parallel agents.
 
+#### Coder Agents (Task Execution)
 ```python
 task(
-    subagent_type="OpenCode-Builder",  # Uses google/gemini-3-flash
+    subagent_type="OpenCode-Builder",  # Uses opencode/glm-4.7
     description="Execute task proj-abc",
-    prompt="Execute beads task proj-abc using /task-execution skill..."
+    prompt="""
+Execute beads task proj-abc.
+
+Task ID: proj-abc
+Worktree Path: .worktrees/worktree-proj-abc
+Project Path: /Users/phong/Workspace/opencode-workflow
+Orchestrator Name: BoldMarsh
+
+Load /coder skill for instructions.
+"""
 )
 ```
 
-**task() parameters:**
-- `subagent_type`: Use `"OpenCode-Builder"` for task execution (configured with google/gemini-3-flash)
-- `description`: Short task description (3-5 words)
-- `prompt`: Detailed instructions for the agent
+#### Populator Agents (Task Population)
+```python
+task(
+    subagent_type="OpenCode-Builder",
+    description="Populate Phase 1 tasks",
+    prompt="""
+Populate Phase 1 tasks.
+
+CHANGE_ID: add-user-auth
+PHASE_ID: 1
+PROJECT_PATH: /Users/phong/Workspace/opencode-workflow
+ORCHESTRATOR_NAME: BoldMarsh
+
+PHASE_TASKS:
+## Phase 1: Authentication Core
+- [ ] Implement JWT token generation
+- [ ] Add password hashing utility
+
+Load /populator skill for instructions.
+"""
+)
+```
 
 ### 4. Monitor Progress
 
 Each coder agent:
 - Works in isolated worktree
-- Reserves files via Agent Mail
+- Reserves files via Agent Mail (using `/coder` skill)
 - Commits changes independently
-- Reports completion
+- Reports completion via Agent Mail message to Orchestrator
 
 ### 5. Merge and Continue
 
 After agents complete:
-- Sisyphus merges worktrees
+- Orchestrator (using `/merge-coordinator`) merges worktrees
 - Closes completed beads issues
 - Reports summary
 - Continues with next batch if tasks remain
@@ -262,8 +293,12 @@ The `coder` agent and categories are configured in `.opencode/oh-my-opencode.jso
 ```json
 {
   "agents": {
-    "coder": {
-      "model": "anthropic/claude-sonnet-4-5-20250514",
+    "Sisyphus": {
+      "model": "anthropic/claude-opus-4-5-20251101",
+      "temperature": 0.1
+    },
+    "OpenCode-Builder": {
+      "model": "opencode/glm-4.7",
       "temperature": 0.1
     }
   },
@@ -271,12 +306,12 @@ The `coder` agent and categories are configured in `.opencode/oh-my-opencode.jso
     "spec-changes": {
       "model": "anthropic/claude-opus-4-5-20251101",
       "temperature": 0.2,
-      "prompt_append": "Use /spec-planner skill..."
+      "prompt_append": "Focus on creating detailed, parallelizable task breakdowns. Use /spec-planner skill. Create OpenSpec proposals and populate beads with tasks."
     },
     "task-execution": {
       "model": "anthropic/claude-sonnet-4-5-20250514",
       "temperature": 0.1,
-      "prompt_append": "Use /task-execution skill..."
+      "prompt_append": "Execute the assigned beads task in isolation. Use /task-execution skill. Work in your own worktree, reserve files before editing, and report completion via Agent Mail."
     }
   }
 }

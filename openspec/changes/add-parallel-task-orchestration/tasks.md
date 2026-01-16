@@ -22,7 +22,7 @@
 - [x] 1.3.2 Add `bv --robot-triage` and `bv --robot-plan` integration
 - [x] 1.3.3 Define task selection logic (max 4, no conflicts)
 - [x] 1.3.4 Add human approval gate with task summary
-- [x] 1.3.5 Define parallel agent spawning via `task(subagent_type="general")`
+- [x] 1.3.5 Define parallel agent spawning via `task(subagent_type="OpenCode-Builder")`
 - [x] 1.3.6 Add result collection and merge trigger
 
 ### 1.4 Merge Coordinator Skill

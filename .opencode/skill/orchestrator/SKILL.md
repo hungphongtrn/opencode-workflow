@@ -69,7 +69,7 @@ Load /coder skill for instructions.
 ### Populator Agents (Task Population)
 ```python
 task(
-    subagent_type="general",
+    subagent_type="OpenCode-Builder",
     description="Populate Phase <n> tasks",
     prompt=f"""
 Populate Phase <PHASE_ID> tasks.

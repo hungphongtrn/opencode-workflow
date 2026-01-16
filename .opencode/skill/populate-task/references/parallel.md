@@ -81,7 +81,7 @@ Spawn agents for independent phases in ONE response:
 ```python
 # Phase 1 Agent
 task(
-    subagent_type="general",
+    subagent_type="OpenCode-Builder",
     description="Populate Phase 1 tasks",
     prompt=f"""
 Populate Phase 1 tasks using /populator skill.
@@ -109,7 +109,7 @@ Follow /populator skill workflow:
 
 # Phase 2 Agent (in same response for parallelism)
 task(
-    subagent_type="general",
+    subagent_type="OpenCode-Builder",
     description="Populate Phase 2 tasks",
     prompt=f"""
 Populate Phase 2 tasks using /populator skill.
@@ -119,7 +119,7 @@ Populate Phase 2 tasks using /populator skill.
 ```
 
 **Key points:**
-- Use `subagent_type="general"` for population agents
+- Use `subagent_type="OpenCode-Builder"` for population agents
 - Spawn ALL independent phases in ONE response
 - Each agent gets its phase's tasks as input
 - Each agent reports back via Agent Mail
@@ -160,7 +160,7 @@ If phases have dependencies (e.g., Phase 3 depends on Phase 2 being populated):
 ```python
 # After Batch 1 completes, spawn Batch 2
 task(
-    subagent_type="general",
+    subagent_type="OpenCode-Builder",
     description="Populate Phase 3 tasks",
     prompt=f"""
 Populate Phase 3 tasks using /populator skill.
