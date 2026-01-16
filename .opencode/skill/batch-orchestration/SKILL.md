@@ -91,15 +91,15 @@ ORCHESTRATOR_NAME = result["name"]  # e.g., "BoldMarsh"
 
 Spawn ALL agents in a **single response** for parallel execution.
 
-**CRITICAL - READ CAREFULLY**:
-- **MUST use `sisyphus_task()`** - Do NOT use the regular `task()` tool
-- `sisyphus_task` automatically uses the correct agent configuration
-- Using regular `task()` will spawn wrong agent type and fail
+**CRITICAL - Use `task()` with `subagent_type="OpenCode-Builder"`**:
+- `OpenCode-Builder` is configured with `google/gemini-3-flash` model
+- Spawn ALL task() calls in ONE response for true parallelism
+- Each agent works in isolated worktree
 
 ```python
-# Agent 1 - Use sisyphus_task, NOT task()
-sisyphus_task(
-    agent="OpenCode-Builder",
+# Agent 1
+task(
+    subagent_type="OpenCode-Builder",
     description="Execute task proj-abc",
     prompt=f"""
 Execute beads task proj-abc using /task-execution skill.
@@ -122,22 +122,20 @@ Follow the /task-execution skill workflow:
 """
 )
 
-# Agent 2 - Use sisyphus_task, NOT task()
-sisyphus_task(
-    agent="OpenCode-Builder",
+# Agent 2
+task(
+    subagent_type="OpenCode-Builder",
     description="Execute task proj-def",
     prompt=f"... include Orchestrator Name: {ORCHESTRATOR_NAME} ..."
 )
 
-# Agent 3 and 4 similarly - ALL must use sisyphus_task()
+# Agent 3 and 4 similarly - ALL in ONE response for parallel execution
 ```
 
-**sisyphus_task() parameters:**
-- `agent`: **MUST be `"OpenCode-Builder"`** for task execution
-- `description`: Short task description
+**task() parameters:**
+- `subagent_type`: **MUST be `"OpenCode-Builder"`** (uses google/gemini-3-flash)
+- `description`: Short task description (3-5 words)
 - `prompt`: Detailed instructions for the agent
-
-**WARNING**: Do NOT use the regular `task()` tool. It will spawn the wrong agent type.
 
 ### 6. Collect Results
 
@@ -211,6 +209,7 @@ If merge fails:
 ## Important Rules
 
 - **Max 4 agents**: Never spawn more than 4 parallel agents
+- **Use OpenCode-Builder**: Always use `subagent_type="OpenCode-Builder"` for task execution
 - **User approval required**: Always wait for explicit approval
 - **No file conflicts**: Ensure selected tasks don't touch same files
 - **All in one response**: Spawn all agents in single response for parallelism

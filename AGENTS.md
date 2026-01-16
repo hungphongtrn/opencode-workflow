@@ -24,7 +24,7 @@ When receiving a request, classify it:
 
 ## For Coder Agents (Subagents)
 
-If you are a coder agent spawned via `sisyphus_task`:
+If you are a coder agent spawned via `task(subagent_type="OpenCode-Builder")`:
 
 1. **You have ONE task** - Focus only on your assigned task ID
 2. **Use worktree** - Work in `.worktrees/worktree-<task-id>`, not main repo
@@ -53,8 +53,8 @@ bv --robot-next             # Single top pick
 
 ### Spawning Parallel Agents
 ```python
-sisyphus_task(
-    agent="OpenCode-Builder",
+task(
+    subagent_type="OpenCode-Builder",  # Uses google/gemini-3-flash
     description="Execute task <id>",
     prompt="Execute beads task <id> using /task-execution skill..."
 )

@@ -39,7 +39,7 @@ OpenCode workflow orchestration system that enables parallel multi-agent task ex
 - **Sisyphus**: Main orchestrator agent (Claude Opus 4.5)
 - **Coder agents**: Task executors spawned in parallel (Claude Sonnet 4.5)
 - **Skills**: Markdown-based workflow definitions triggered by slash commands
-- **Categories**: Runtime presets for sisyphus_task delegation
+- **Categories**: Runtime presets for task() delegation with subagent_type
 
 ## Important Constraints
 - Maximum 4 parallel coder agents per batch

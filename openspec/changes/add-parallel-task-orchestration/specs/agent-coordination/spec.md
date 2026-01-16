@@ -65,18 +65,13 @@ The system SHALL use Agent Mail messages for status updates between agents.
 - **THEN** Sisyphus sends a summary message to all participating agents
 - **AND** the message includes: merged tasks, any conflicts, final status
 
-### Requirement: Category Configuration
-The system SHALL provide categories for sisyphus_task delegation.
+### Requirement: Subagent Configuration
+The system SHALL provide subagent types for task() delegation.
 
-#### Scenario: Spec changes category
-- **WHEN** delegating spec planning work
-- **THEN** the `spec-changes` category uses Claude Opus 4.5 model
-- **AND** temperature is set to 0.2 for creative planning
-- **AND** prompt includes reference to `/spec-planner` skill
-
-#### Scenario: Task execution category
+#### Scenario: Task execution with OpenCode-Builder
 - **WHEN** delegating task execution work
-- **THEN** the `task-execution` category uses Claude Sonnet 4.5 model
-- **AND** temperature is set to 0.1 for deterministic execution
+- **THEN** use `task(subagent_type="OpenCode-Builder", ...)`
+- **AND** OpenCode-Builder is configured with google/gemini-3-flash model
 - **AND** prompt includes reference to `/task-execution` skill
 - **AND** prompt emphasizes isolated worktree execution
+- **AND** all task() calls are made in ONE response for parallel execution

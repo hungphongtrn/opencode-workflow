@@ -29,7 +29,7 @@
         "temperature": 0.2
       },
       "OpenCode-Builder": {
-        "model": "minimax/MiniMax-M2.1",
+        "model": "google/gemini-3-flash",
         "temperature": 0.1
       }
     },

@@ -13,7 +13,7 @@ Currently, OpenCode agents work sequentially on tasks. For complex features with
 - **NEW**: `/batch-orchestration` skill - Orchestrates parallel coder agent execution
 - **NEW**: `/merge-coordinator` skill - Safely merges completed worktrees
 - **NEW**: `coder` agent configuration in oh-my-opencode.json
-- **NEW**: `spec-changes` and `task-execution` categories for sisyphus_task
+- **NEW**: `OpenCode-Builder` subagent type (google/gemini-3-flash) for task execution
 
 ## Impact
 - Affected specs: orchestration, task-execution, agent-coordination (all new)

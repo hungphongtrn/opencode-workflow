@@ -112,24 +112,24 @@ User: "Looks good, execute the tasks"
 Sisyphus: [Invokes /batch-orchestration skill]
 - Selects up to 4 ready tasks
 - Presents batch for approval
-- After approval, spawns parallel coder agents via sisyphus_task
+- After approval, spawns parallel coder agents via task(subagent_type="OpenCode-Builder")
 ```
 
 ### Agent Spawning
 
-Sisyphus uses `sisyphus_task` to spawn parallel agents:
+Sisyphus uses `task()` with `subagent_type="OpenCode-Builder"` to spawn parallel agents:
 
 ```python
-sisyphus_task(
-    agent="OpenCode-Builder",
+task(
+    subagent_type="OpenCode-Builder",  # Uses google/gemini-3-flash
     description="Execute task proj-abc",
     prompt="Execute beads task proj-abc using /task-execution skill..."
 )
 ```
 
-**sisyphus_task parameters:**
-- `agent`: Agent to use (use `"OpenCode-Builder"` for task execution)
-- `description`: Short task description
+**task() parameters:**
+- `subagent_type`: Use `"OpenCode-Builder"` for task execution (configured with google/gemini-3-flash)
+- `description`: Short task description (3-5 words)
 - `prompt`: Detailed instructions for the agent
 
 ### 3. Monitor Progress
