@@ -40,8 +40,8 @@ bv --robot-triage
 ┌─────────────────────────────────────────────────────────────────┐
 │  STEP 1: /spec-planner                                          │
 │  ├─ Create OpenSpec proposal (proposal.md, tasks.md, specs/)    │
-│  ├─ Create beads issues with dependencies                       │
-│  ├─ Run bv --robot-insights for validation                      │
+│  ├─ Define parallelizable tasks in tasks.md                     │
+│  ├─ Run openspec validate --strict                              │
 │  └─ STOP - Present plan for approval                            │
 └─────────────────────────────────────────────────────────────────┘
                               │
@@ -49,7 +49,24 @@ bv --robot-triage
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│  STEP 2: /batch-orchestration                                   │
+│  STEP 2: /populate-task                                         │
+│  ├─ Parse tasks.md and count unchecked tasks                    │
+│  ├─ Choose mode based on task count:                            │
+│  │   ├─ 1-4 tasks: Sequential (direct population)               │
+│  │   └─ 5+ tasks: Parallel Phase Population                     │
+│  │       ├─ Identify phases from ## sections                    │
+│  │       ├─ Spawn /task-populator agents per phase              │
+│  │       │   ├─ Agent 1: Phase 1 (deep codebase analysis)       │
+│  │       │   ├─ Agent 2: Phase 2 (deep codebase analysis)       │
+│  │       │   └─ Agent N: Phase N (deep codebase analysis)       │
+│  │       └─ Collect results, add cross-phase dependencies       │
+│  ├─ Run bv --robot-insights for validation                      │
+│  └─ Report created issues and dependency graph                  │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  STEP 3: /batch-orchestration                                   │
 │  ├─ Run bv --robot-plan for parallel tracks                     │
 │  ├─ Select up to 4 non-conflicting tasks                        │
 │  ├─ Present batch for approval                                  │
@@ -72,7 +89,7 @@ bv --robot-triage
             └─────────────────┼─────────────────┘
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│  STEP 3: /merge-coordinator                                     │
+│  STEP 4: /merge-coordinator                                     │
 │  ├─ Merge worktrees sequentially                                │
 │  ├─ Handle conflicts (stop for complex ones)                    │
 │  ├─ Run validation (lsp_diagnostics, build, tests)              │
@@ -98,16 +115,67 @@ User: "I want to add user authentication with JWT tokens"
 
 Sisyphus: [Invokes /spec-planner skill]
 - Creates openspec/changes/add-user-auth/
-- Creates beads issues for each task
+- Defines tasks in tasks.md
 - Presents plan for approval
 ```
 
-### 2. Approve and Execute
+### 2. Populate Beads Issues
 
-After reviewing the plan:
+After reviewing and approving the plan:
 
 ```
-User: "Looks good, execute the tasks"
+User: "Looks good, populate the tasks"
+
+Sisyphus: [Invokes /populate-task skill]
+- Counts unchecked tasks in tasks.md
+- Chooses mode:
+  - 1-4 tasks: Sequential population (direct)
+  - 5+ tasks: Parallel phase population (spawns /task-populator agents)
+- Creates junior-dev-ready beads issues with deep codebase analysis
+- Reports created issues and dependency graph
+```
+
+#### Parallel Phase Population (5+ tasks)
+
+For larger task sets, `/populate-task` spawns parallel `/task-populator` agents:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  /populate-task (Orchestrator)                                  │
+│  ├─ Parse tasks.md into phases (## sections)                    │
+│  ├─ Present phase plan for approval                             │
+│  └─ Spawn parallel agents:                                      │
+│      ┌─────────────────┬─────────────────┬────────────────┐     │
+│      ▼                 ▼                 ▼                │     │
+│  ┌─────────┐      ┌─────────┐      ┌─────────┐            │     │
+│  │Phase 1  │      │Phase 2  │      │Phase 3  │            │     │
+│  │Populator│      │Populator│      │Populator│            │     │
+│  │- Deep   │      │- Deep   │      │- Deep   │            │     │
+│  │  analysis│     │  analysis│     │  analysis│           │     │
+│  │- Code   │      │- Code   │      │- Code   │            │     │
+│  │  examples│     │  examples│     │  examples│           │     │
+│  │- Create │      │- Create │      │- Create │            │     │
+│  │  beads  │      │  beads  │      │  beads  │            │     │
+│  └────┬────┘      └────┬────┘      └────┬────┘            │     │
+│       └────────────────┼────────────────┘                 │     │
+│                        ▼                                  │     │
+│  ├─ Collect results from all agents                       │     │
+│  ├─ Add cross-phase dependencies                          │     │
+│  └─ Report final dependency graph                         │     │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Benefits of parallel population:**
+- Deeper codebase analysis per task (focused context)
+- Richer, self-explanatory task descriptions
+- Cheaper execution agents can follow detailed instructions
+
+### 3. Execute Tasks
+
+After beads issues are created:
+
+```
+User: "Execute the tasks"
 
 Sisyphus: [Invokes /batch-orchestration skill]
 - Selects up to 4 ready tasks
@@ -132,7 +200,7 @@ task(
 - `description`: Short task description (3-5 words)
 - `prompt`: Detailed instructions for the agent
 
-### 3. Monitor Progress
+### 4. Monitor Progress
 
 Each coder agent:
 - Works in isolated worktree
@@ -140,7 +208,7 @@ Each coder agent:
 - Commits changes independently
 - Reports completion
 
-### 4. Merge and Continue
+### 5. Merge and Continue
 
 After agents complete:
 - Sisyphus merges worktrees
@@ -265,3 +333,4 @@ bd sync --force
 3. **Review before approval** - Always review the batch before execution
 4. **Monitor progress** - Check Agent Mail for status updates
 5. **Handle failures gracefully** - Failed tasks leave worktrees intact for debugging
+6. **Separate planning from execution** - Use /spec-planner for planning, /populate-task for beads creation

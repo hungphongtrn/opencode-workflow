@@ -1,15 +1,16 @@
 ---
 name: spec-planner
 description: |
-  Transform user feature requests into OpenSpec proposals with parallelizable beads tasks.
+  Transform user feature requests into OpenSpec proposals with parallelizable tasks.
   Use when: (1) User requests a new feature or spec change, (2) User mentions "proposal", "spec", "plan", or "change",
   (3) User wants to break down work into parallel tasks, (4) User asks to create tasks for a feature.
-  This skill creates proposal.md, tasks.md, design.md, populates beads issues with dependencies, and stops for approval.
+  This skill creates proposal.md, tasks.md, design.md, and stops for approval.
+  NOTE: This skill does NOT populate beads. Use /populate-task after approval to create beads issues.
 ---
 
 # Spec Planner
 
-Transform feature requests into structured OpenSpec proposals with parallelizable beads tasks.
+Transform feature requests into structured OpenSpec proposals with parallelizable tasks.
 
 ## Workflow
 
@@ -45,14 +46,11 @@ Task guidelines:
 - Include affected file paths in task description
 - Mark clear boundaries between tasks
 - Maximum 4 parallel tasks per batch
+- Use checkbox format: `- [ ] 1.1 Task description`
 
-### 4. Create Beads Issues (MANDATORY)
+### 4. Write Self-Explanatory Tasks in tasks.md
 
-**CRITICAL**: You MUST create beads issues for EVERY task identified in tasks.md. Subagents will execute these tasks autonomously based solely on the issue description.
-
-#### Self-Explanatory Task Requirements
-
-Each task MUST be **self-contained** so a coder agent can complete it without asking questions:
+Each task in tasks.md MUST be **self-contained** so a coder agent can complete it without asking questions:
 
 1. **Clear Title**: Action-oriented (e.g., "Add JWT validation middleware")
 2. **Complete Description** including:
@@ -62,72 +60,55 @@ Each task MUST be **self-contained** so a coder agent can complete it without as
    - **References**: Links to related specs, design docs, or example code
    - **Acceptance Criteria**: How to verify the task is complete
 
-#### Task Creation
+#### Task Format in tasks.md
 
-```bash
-# Create each task with comprehensive description
-bd create "<Action-oriented title>" --type task --priority <0-4> \
-  --description="## What
-<Specific deliverable>
+```markdown
+## 1. Category Name
 
-## Files
-- <path/to/file1.ts> - <what to do>
-- <path/to/file2.ts> - <what to do>
+### 1.1 Task Title
+- [ ] Implement the feature
 
-## Approach
-<Key implementation details, patterns to follow>
+**What**: Specific deliverable description
 
-## References
+**Files**:
+- `path/to/file1.ts` - what to do
+- `path/to/file2.ts` - what to do
+
+**Approach**: Key implementation details, patterns to follow
+
+**References**:
 - See: openspec/changes/<change-id>/design.md
 - Pattern: src/existing/similar-feature.ts
 
-## Done When
-- [ ] <Verification step 1>
-- [ ] <Verification step 2>"
-
-# Add dependencies (child depends on parent)
-bd dep add <child-id> <parent-id>
+**Done When**:
+- [ ] Verification step 1
+- [ ] Verification step 2
 ```
 
-#### Priority Mapping
+#### Priority Mapping (for later beads creation)
 - P0: Critical/blocking
 - P1: High priority
 - P2: Medium (default)
 - P3: Low priority
 - P4: Backlog
 
-#### Verification (REQUIRED)
-
-After creating ALL tasks, verify they exist:
-```bash
-bd ready  # MUST show created tasks
-```
-
-**If `bd ready` shows no tasks, STOP and fix the issue before proceeding.**
-
 ### 5. Validate and Report
 
 ```bash
 # Validate OpenSpec
 openspec validate $CHANGE_ID --strict
-
-# VERIFY beads issues were created
-bd ready  # If empty, bd creation failed - fix before continuing
-
-# Get task graph insights
-bv --robot-insights
-bv --robot-plan
 ```
 
 ### 6. STOP - Await Approval
 
-**Do NOT proceed to implementation.** Present:
+**Do NOT proceed to implementation or beads creation.** Present:
 1. Summary of the proposal
-2. List of created beads issues with IDs (from `bd ready`)
-3. Dependency graph visualization
-4. Recommended execution order from `bv --robot-next`
+2. List of tasks from tasks.md with parallelization notes
+3. Recommended execution order
 
-Wait for explicit user approval before any implementation begins.
+Wait for explicit user approval before:
+- Running `/populate-task` to create beads issues
+- Any implementation begins
 
 ## Example Output
 
@@ -140,24 +121,26 @@ Wait for explicit user approval before any implementation begins.
 - openspec/changes/add-user-authentication/design.md
 - openspec/changes/add-user-authentication/specs/auth/spec.md
 
-### Beads Issues Created:
-| ID | Title | Priority | Depends On |
-|----|-------|----------|------------|
-| proj-abc | Create auth middleware | P1 | - |
-| proj-def | Add login endpoint | P1 | - |
-| proj-ghi | Add JWT validation | P1 | proj-abc |
-| proj-jkl | Create login UI | P2 | proj-def |
+### Tasks Defined (in tasks.md):
+| # | Title | Priority | Depends On |
+|---|-------|----------|------------|
+| 1.1 | Create auth middleware | P1 | - |
+| 1.2 | Add login endpoint | P1 | - |
+| 2.1 | Add JWT validation | P1 | 1.1 |
+| 2.2 | Create login UI | P2 | 1.2 |
 
 ### Parallel Execution Tracks:
-- Track 1: proj-abc → proj-ghi
-- Track 2: proj-def → proj-jkl
+- Track 1: 1.1 → 2.1
+- Track 2: 1.2 → 2.2
 
 ### Next Steps:
-Run `/batch-orchestration` to execute tasks after approval.
+1. Review and approve this proposal
+2. Run `/populate-task` to create beads issues from tasks.md
+3. Run `/batch-orchestration` to execute tasks
 ```
 
 ## References
 
 - See `openspec/AGENTS.md` for OpenSpec conventions
+- Run `/populate-task` after approval to create beads issues
 - Run `bd prime` for beads workflow context
-- Run `bv --robot-triage` for task prioritization
