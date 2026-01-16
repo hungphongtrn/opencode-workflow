@@ -1,5 +1,8 @@
 # Parallel Task Orchestration Workflow
 
+> **Note for AI Agents**: This file is for human reference only.
+> Load the appropriate skill based on your role (see AGENTS.md).
+
 This document describes how to use the parallel task orchestration system for multi-agent task execution.
 
 ## Prerequisites
