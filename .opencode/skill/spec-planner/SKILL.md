@@ -141,6 +141,6 @@ Wait for explicit user approval before:
 
 ## References
 
-- See `openspec/AGENTS.md` for OpenSpec conventions
+- Load `/openspec` skill for OpenSpec conventions
 - Run `/populate-task` after approval to create beads issues
 - Run `bd prime` for beads workflow context
