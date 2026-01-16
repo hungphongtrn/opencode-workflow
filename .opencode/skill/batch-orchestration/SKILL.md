@@ -91,14 +91,15 @@ ORCHESTRATOR_NAME = result["name"]  # e.g., "BoldMarsh"
 
 Spawn ALL agents in a **single response** for parallel execution.
 
-**CRITICAL**: 
-- Use `task` tool with `subagent_type="OpenCode-Builder"` (NOT "general")
-- Include the orchestrator name in each agent's prompt
+**CRITICAL - READ CAREFULLY**:
+- **MUST use `sisyphus_task()`** - Do NOT use the regular `task()` tool
+- `sisyphus_task` automatically uses the correct agent configuration
+- Using regular `task()` will spawn wrong agent type and fail
 
 ```python
-# Agent 1 - MUST use subagent_type="OpenCode-Builder"
-task(
-    subagent_type="OpenCode-Builder",  # REQUIRED: Always use "OpenCode-Builder", never "general"
+# Agent 1 - Use sisyphus_task, NOT task()
+sisyphus_task(
+    agent="OpenCode-Builder",
     description="Execute task proj-abc",
     prompt=f"""
 Execute beads task proj-abc using /task-execution skill.
@@ -121,20 +122,22 @@ Follow the /task-execution skill workflow:
 """
 )
 
-# Agent 2 - MUST use subagent_type="OpenCode-Builder"
-task(
-    subagent_type="OpenCode-Builder",  # REQUIRED: Always use "OpenCode-Builder"
+# Agent 2 - Use sisyphus_task, NOT task()
+sisyphus_task(
+    agent="OpenCode-Builder",
     description="Execute task proj-def",
     prompt=f"... include Orchestrator Name: {ORCHESTRATOR_NAME} ..."
 )
 
-# Agent 3 and 4 similarly - ALL must use subagent_type="OpenCode-Builder"
+# Agent 3 and 4 similarly - ALL must use sisyphus_task()
 ```
 
-**task() parameters:**
-- `subagent_type`: **MUST be `"OpenCode-Builder"`** - Do NOT use "general"
+**sisyphus_task() parameters:**
+- `agent`: **MUST be `"OpenCode-Builder"`** for task execution
 - `description`: Short task description
 - `prompt`: Detailed instructions for the agent
+
+**WARNING**: Do NOT use the regular `task()` tool. It will spawn the wrong agent type.
 
 ### 6. Collect Results
 
