@@ -1,10 +1,15 @@
 <purpose>
-Execute all plans in a phase using wave-based parallel execution. Orchestrator stays lean by delegating plan execution to subagents.
+Execute all plans in a phase using wave-based parallel execution with git worktrees. Orchestrator stays lean by delegating plan execution to subagents in isolated worktrees, coordinated via Agent Mail.
 </purpose>
 
 <core_principle>
-The orchestrator's job is coordination, not execution. Each subagent loads the full execute-plan context itself. Orchestrator discovers plans, analyzes dependencies, groups into waves, spawns agents, handles checkpoints, collects results.
+The orchestrator's job is coordination, not execution. Each subagent works in its own git worktree with file reservations via Agent Mail. Orchestrator discovers plans, groups into waves, sets up Agent Mail, spawns parallel executors, merges worktrees, handles checkpoints, collects results.
 </core_principle>
+
+<prerequisites>
+- **MCP Agent Mail** server running at `http://127.0.0.1:8765/mcp/`
+- **Git** with worktree support
+</prerequisites>
 
 <required_reading>
 Read STATE.md before any operation to load project context.
@@ -128,8 +133,35 @@ Report wave structure with context:
 The "What it builds" column comes from skimming plan names/objectives. Keep it brief (3-8 words).
 </step>
 
+<step name="setup_agent_mail">
+Before executing any waves, setup Agent Mail coordination:
+
+```python
+# Get absolute project path
+import os
+PROJECT_PATH = os.getcwd()
+
+# Ensure project exists in Agent Mail
+mcp-agent-mail_ensure_project(
+    human_key=PROJECT_PATH,
+    identity_mode="directory"
+)
+
+# Register as orchestrator - SAVE the returned name!
+result = mcp-agent-mail_register_agent(
+    project_key=PROJECT_PATH,
+    program="gsd-orchestrator",
+    model="opencode-default",
+    task_description=f"Phase {phase} Execution Orchestrator"
+)
+ORCHESTRATOR_NAME = result["name"]  # e.g., "BoldMarsh"
+```
+
+**CRITICAL**: Save the `name` from the response. You MUST pass this to all subagents so they can send messages back to you.
+</step>
+
 <step name="execute_waves">
-Execute each wave in sequence. Autonomous plans within a wave run in parallel.
+Execute each wave in sequence. Plans within a wave run in parallel using isolated worktrees.
 
 **For each wave:**
 
@@ -149,7 +181,7 @@ Execute each wave in sequence. Autonomous plans within a wave run in parallel.
    **{Plan ID}: {Plan Name}** (if parallel)
    {same format}
 
-   Spawning {count} agent(s)...
+   Creating worktrees and spawning {count} agent(s)...
 
    ---
    ```
@@ -158,16 +190,32 @@ Execute each wave in sequence. Autonomous plans within a wave run in parallel.
    - Bad: "Executing terrain generation plan"
    - Good: "Procedural terrain generator using Perlin noise — creates height maps, biome zones, and collision meshes. Required before vehicle physics can interact with ground."
 
-2. **Spawn all autonomous agents in wave simultaneously:**
+2. **Create worktrees for each plan in wave:**
 
-   Use Task tool with multiple parallel calls. Each agent gets prompt from subagent-task-prompt template:
-
+   ```bash
+   # Create isolated worktree for each plan
+   git worktree add .worktrees/wt-{phase}-{plan} -b gsd/{phase}-{plan}
    ```
-   <objective>
-   Execute plan {plan_number} of phase {phase_number}-{phase_name}.
 
-   Commit each task atomically. Create SUMMARY.md. Update STATE.md.
-   </objective>
+   Each plan gets its own worktree at `.worktrees/wt-{phase}-{plan}` on branch `gsd/{phase}-{plan}`.
+
+3. **Spawn all executors in wave simultaneously:**
+
+   Use Task tool with multiple parallel calls. Each agent gets:
+
+   ```python
+   Task(
+       subagent_type="gsd-executor",
+       description=f"Execute plan {phase}-{plan}",
+       prompt=f"""
+   Execute GSD plan in isolated worktree.
+
+   Plan Path: {plan_path}
+   Worktree Path: .worktrees/wt-{phase}-{plan}
+   Project Path: {PROJECT_PATH}
+   Orchestrator Name: {ORCHESTRATOR_NAME}
+   Phase: {phase}
+   Plan: {plan}
 
    <execution_context>
    @./.opencode/get-shit-done/workflows/execute-plan.md
@@ -182,19 +230,63 @@ Execute each wave in sequence. Autonomous plans within a wave run in parallel.
    Config: @.planning/config.json (if exists)
    </context>
 
+   <instructions>
+   1. Register with Agent Mail using Project Path
+   2. Reserve files before editing via mcp-agent-mail_file_reservation_paths
+   3. Work ONLY in your worktree directory
+   4. Execute all tasks, commit each atomically IN YOUR WORKTREE
+   5. Create SUMMARY.md in phase directory (in worktree)
+   6. Release file reservations when done
+   7. Send completion message to {ORCHESTRATOR_NAME}
+   </instructions>
+
    <success_criteria>
-   - [ ] All tasks executed
+   - [ ] All tasks executed in worktree
    - [ ] Each task committed individually
    - [ ] SUMMARY.md created in plan directory
-   - [ ] STATE.md updated with position and decisions
+   - [ ] File reservations released
+   - [ ] Completion message sent to orchestrator
    </success_criteria>
+   """
+   )
    ```
 
-2. **Wait for all agents in wave to complete:**
+   **CRITICAL**: Spawn ALL plans in wave in ONE response for true parallelism.
+
+4. **Wait for all agents in wave to complete:**
 
    Task tool blocks until each agent finishes. All parallel agents return together.
 
-3. **Report completion and what was built:**
+5. **Merge worktrees sequentially:**
+
+   After all agents complete, merge each worktree back to main:
+
+   ```bash
+   # Return to main worktree (project root)
+   cd {PROJECT_PATH}
+
+   # Merge first worktree
+   git merge gsd/{phase}-{plan_1} --no-ff -m "Merge gsd/{phase}-{plan_1}: {plan_name}"
+
+   # Run validation after merge
+   # lsp_diagnostics on changed files, or build/test if configured
+
+   # Continue for each plan in wave...
+   ```
+
+   **Conflict handling:**
+   - For trivial conflicts (whitespace, imports): auto-resolve
+   - For complex conflicts: STOP, report to user with diff context
+
+6. **Cleanup worktrees:**
+
+   After successful merge:
+   ```bash
+   git worktree remove .worktrees/wt-{phase}-{plan}
+   git branch -d gsd/{phase}-{plan}
+   ```
+
+7. **Report completion and what was built:**
 
    For each completed agent:
    - Verify SUMMARY.md exists at expected path
@@ -214,6 +306,7 @@ Execute each wave in sequence. Autonomous plans within a wave run in parallel.
    **{Plan ID}: {Plan Name}** (if parallel)
    {same format}
 
+   Merge status: ✓ All worktrees merged successfully
    {If more waves: brief note on what this enables for next wave}
 
    ---
@@ -223,19 +316,20 @@ Execute each wave in sequence. Autonomous plans within a wave run in parallel.
    - Bad: "Wave 2 complete. Proceeding to Wave 3."
    - Good: "Terrain system complete — 3 biome types, height-based texturing, physics collision meshes. Vehicle physics (Wave 3) can now reference ground surfaces."
 
-4. **Handle failures:**
+8. **Handle failures:**
 
    If any agent in wave fails:
    - Report which plan failed and why
+   - Leave failed worktree intact for debugging
    - Ask user: "Continue with remaining waves?" or "Stop execution?"
    - If continue: proceed to next wave (dependent plans may also fail)
    - If stop: exit with partial completion report
 
-5. **Execute checkpoint plans between waves:**
+9. **Execute checkpoint plans between waves:**
 
    See `<checkpoint_handling>` for details.
 
-6. **Proceed to next wave**
+10. **Proceed to next wave**
 
 </step>
 
@@ -321,22 +415,23 @@ If a plan in a parallel wave has a checkpoint:
 </step>
 
 <step name="aggregate_results">
-After all waves complete, aggregate results:
+After all waves complete (including merges), aggregate results:
 
 ```markdown
 ## Phase {X}: {Name} Execution Complete
 
 **Waves executed:** {N}
 **Plans completed:** {M} of {total}
+**Worktrees merged:** {count}
 
 ### Wave Summary
 
-| Wave | Plans | Status |
-|------|-------|--------|
-| 1 | plan-01, plan-02 | ✓ Complete |
-| CP | plan-03 | ✓ Verified |
-| 2 | plan-04 | ✓ Complete |
-| 3 | plan-05 | ✓ Complete |
+| Wave | Plans | Merge Status |
+|------|-------|--------------|
+| 1 | plan-01, plan-02 | ✓ Merged |
+| CP | plan-03 | ✓ Verified & Merged |
+| 2 | plan-04 | ✓ Merged |
+| 3 | plan-05 | ✓ Merged |
 
 ### Plan Details
 
@@ -347,6 +442,50 @@ After all waves complete, aggregate results:
 ### Issues Encountered
 [Aggregate from all SUMMARYs, or "None"]
 ```
+</step>
+
+<step name="merge_conflict_handling">
+If merge conflict occurs during wave execution:
+
+**For trivial conflicts** (whitespace, import order):
+```bash
+# Attempt auto-resolution
+git checkout --theirs <file>  # or --ours
+git add <file>
+git commit -m "Merge gsd/{phase}-{plan}: resolved conflict in <file>"
+```
+
+**For complex conflicts:**
+1. STOP the merge process
+2. Report to user with full context:
+
+```markdown
+## Merge Conflict Detected
+
+**Plan:** {phase}-{plan}
+**Branch:** gsd/{phase}-{plan}
+**Conflicting Files:**
+- src/auth/middleware.ts
+
+**Conflict Details:**
+\`\`\`diff
+<<<<<<< HEAD
+// Current branch code
+=======
+// Incoming worktree code
+>>>>>>> gsd/{phase}-{plan}
+\`\`\`
+
+**Options:**
+1. Keep current (HEAD) version
+2. Keep incoming (task) version  
+3. Manual resolution needed
+
+**Please advise how to proceed.**
+```
+
+3. Wait for user decision before continuing
+4. After resolution, continue with remaining merges
 </step>
 
 <step name="verify_phase_goal">
@@ -495,25 +634,34 @@ All {N} phases executed.
 
 Orchestrator context usage: ~10-15%
 - Read plan frontmatter (small)
-- Analyze dependencies (logic, no heavy reads)
+- Setup Agent Mail (one-time)
+- Create worktrees (bash commands)
 - Fill template strings
 - Spawn Task calls
+- Merge worktrees sequentially
 - Collect results
 
 Each subagent: Fresh 200k context
+- Works in isolated worktree
+- Reserves files via Agent Mail
 - Loads full execute-plan workflow
 - Loads templates, references
 - Executes plan with full capacity
-- Creates SUMMARY, commits
+- Creates SUMMARY, commits in worktree
+- Sends completion message
 
 **No polling.** Task tool blocks until completion. No TaskOutput loops.
 
 **No context bleed.** Orchestrator never reads workflow internals. Just paths and results.
+
+**No file conflicts.** Agent Mail file reservations prevent parallel agents from editing same files.
 </context_efficiency>
 
 <failure_handling>
 **Subagent fails mid-plan:**
-- SUMMARY.md won't exist
+- SUMMARY.md won't exist in worktree
+- Worktree left intact for debugging
+- Agent sends failure message via Agent Mail
 - Orchestrator detects missing SUMMARY
 - Reports failure, asks user how to proceed
 
@@ -527,11 +675,29 @@ Each subagent: Fresh 200k context
 - Something systemic (git issues, permissions, etc.)
 - Stop execution
 - Report for manual investigation
+- Leave all worktrees intact
+
+**Merge conflict:**
+- Trivial conflicts: auto-resolve
+- Complex conflicts: stop, present to user, wait for decision
+- See `merge_conflict_handling` step
 
 **Checkpoint fails to resolve:**
 - User can't approve or provides repeated issues
 - Ask: "Skip this plan?" or "Abort phase execution?"
 - Record partial progress in STATE.md
+
+**Worktree cleanup on failure:**
+```bash
+# List orphaned worktrees
+git worktree list
+
+# Force remove if needed
+git worktree remove --force .worktrees/wt-{phase}-{plan}
+
+# Prune stale references
+git worktree prune
+```
 </failure_handling>
 
 <resumption>
@@ -540,13 +706,25 @@ Each subagent: Fresh 200k context
 If phase execution was interrupted (context limit, user exit, error):
 
 1. Run `/gsd/execute-phase {phase}` again
-2. discover_plans finds completed SUMMARYs
+2. discover_plans finds completed SUMMARYs (in main branch after merge)
 3. Skips completed plans
 4. Resumes from first incomplete plan
-5. Continues wave-based execution
+5. Creates new worktrees for remaining plans
+6. Continues wave-based execution
 
 **STATE.md tracks:**
 - Last completed plan
 - Current wave
 - Any pending checkpoints
+- Worktrees that need cleanup
+
+**Orphaned worktree cleanup:**
+```bash
+# Check for leftover worktrees
+git worktree list
+
+# Remove orphaned worktrees
+git worktree remove .worktrees/wt-{phase}-{plan}
+git branch -d gsd/{phase}-{plan}
+```
 </resumption>

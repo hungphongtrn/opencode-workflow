@@ -1,11 +1,13 @@
 ---
-description: Execute all plans in a phase with wave-based parallelization
+description: Execute all plans in a phase with wave-based parallelization using git worktrees and Agent Mail
 ---
 
 <objective>
-Execute all plans in a phase using wave-based parallel execution.
+Execute all plans in a phase using wave-based parallel execution with git worktrees.
 
-Orchestrator stays lean: discover plans, analyze dependencies, group into waves, spawn subagents, collect results. Each subagent loads the full execute-plan context and handles its own plan.
+Each plan in a wave runs in an isolated git worktree. Agent Mail coordinates file reservations and completion messaging. After each wave completes, worktrees are merged back sequentially.
+
+Orchestrator stays lean: discover plans, group into waves, setup Agent Mail, spawn parallel executors in worktrees, merge results, verify goals.
 
 Context budget: ~15% orchestrator, 100% fresh per subagent.
 </objective>
@@ -25,6 +27,11 @@ Phase: $ARGUMENTS
 @.planning/STATE.md
 </context>
 
+<prerequisites>
+- **MCP Agent Mail** server running at `http://127.0.0.1:8765/mcp/`
+- **Git** with worktree support
+</prerequisites>
+
 <process>
 1. **Validate phase exists**
    - Find phase directory matching argument
@@ -42,18 +49,79 @@ Phase: $ARGUMENTS
    - Group plans by wave number
    - Report wave structure to user
 
-4. **Execute waves**
-   For each wave in order:
-   - Spawn `gsd-executor` for each plan in wave (parallel Task calls)
-   - Wait for completion (Task blocks)
-   - Verify SUMMARYs created
-   - Proceed to next wave
+4. **Setup Agent Mail**
+   ```python
+   # Ensure project exists
+   mcp-agent-mail_ensure_project(
+       human_key="{absolute_project_path}",
+       identity_mode="directory"
+   )
+   
+   # Register as orchestrator - SAVE the returned name!
+   result = mcp-agent-mail_register_agent(
+       project_key="{absolute_project_path}",
+       program="gsd-orchestrator",
+       model="opencode-default",
+       task_description="Phase {phase} Execution Orchestrator"
+   )
+   ORCHESTRATOR_NAME = result["name"]  # e.g., "BoldMarsh"
+   ```
 
-5. **Aggregate results**
+5. **Execute waves with worktrees**
+   For each wave in order:
+   
+   a. **Create worktrees for each plan in wave:**
+      ```bash
+      git worktree add .worktrees/wt-{phase}-{plan} -b gsd/{phase}-{plan}
+      ```
+   
+   b. **Spawn parallel executors** (all in ONE response for true parallelism):
+      ```python
+      Task(
+          subagent_type="gsd-executor",
+          description="Execute plan {phase}-{plan}",
+          prompt=f"""
+      Execute GSD plan in isolated worktree.
+
+      Plan Path: {plan_path}
+      Worktree Path: .worktrees/wt-{phase}-{plan}
+      Project Path: {absolute_project_path}
+      Orchestrator Name: {ORCHESTRATOR_NAME}
+      Phase: {phase}
+      Plan: {plan}
+
+      Load the plan file and execute all tasks in the worktree.
+      Reserve files via Agent Mail before editing.
+      Commit in worktree. Send completion message to orchestrator.
+      """
+      )
+      # Spawn ALL plans in wave simultaneously
+      ```
+   
+   c. **Wait for all agents to complete**
+      Task tool blocks until all finish.
+   
+   d. **Merge worktrees sequentially:**
+      For each completed worktree:
+      ```bash
+      git merge gsd/{phase}-{plan} --no-ff -m "Merge gsd/{phase}-{plan}: {plan_name}"
+      ```
+      - Run validation after each merge
+      - Handle conflicts (stop for complex ones)
+   
+   e. **Cleanup worktrees:**
+      ```bash
+      git worktree remove .worktrees/wt-{phase}-{plan}
+      git branch -d gsd/{phase}-{plan}
+      ```
+   
+   f. **Verify SUMMARYs created, proceed to next wave**
+
+6. **Aggregate results**
    - Collect summaries from all plans
    - Report phase completion status
 
-6. **Commit any orchestrator corrections**
+7. **Commit any orchestrator corrections**
    Check for uncommitted changes before verification:
    ```bash
    git status --porcelain
@@ -66,33 +134,33 @@ Phase: $ARGUMENTS
 
    **If clean:** Continue to verification.
 
-7. **Verify phase goal**
+8. **Verify phase goal**
    - Spawn `gsd-verifier` subagent with phase directory and goal
    - Verifier checks must_haves against actual codebase (not SUMMARY claims)
    - Creates VERIFICATION.md with detailed report
    - Route by status:
-     - `passed` → continue to step 8
+     - `passed` → continue to step 9
      - `human_needed` → present items, get approval or feedback
      - `gaps_found` → present gaps, offer `/gsd/plan-phase {X} --gaps`
 
-8. **Update roadmap and state**
+9. **Update roadmap and state**
    - Update ROADMAP.md, STATE.md
 
-9. **Update requirements**
-   Mark phase requirements as Complete:
-   - Read ROADMAP.md, find this phase's `Requirements:` line (e.g., "AUTH-01, AUTH-02")
-   - Read REQUIREMENTS.md traceability table
-   - For each REQ-ID in this phase: change Status from "Pending" to "Complete"
-   - Write updated REQUIREMENTS.md
-   - Skip if: REQUIREMENTS.md doesn't exist, or phase has no Requirements line
+10. **Update requirements**
+    Mark phase requirements as Complete:
+    - Read ROADMAP.md, find this phase's `Requirements:` line (e.g., "AUTH-01, AUTH-02")
+    - Read REQUIREMENTS.md traceability table
+    - For each REQ-ID in this phase: change Status from "Pending" to "Complete"
+    - Write updated REQUIREMENTS.md
+    - Skip if: REQUIREMENTS.md doesn't exist, or phase has no Requirements line
 
-10. **Commit phase completion**
+11. **Commit phase completion**
     Bundle all phase metadata updates in one commit:
     - Stage: `git add .planning/ROADMAP.md .planning/STATE.md`
     - Stage REQUIREMENTS.md if updated: `git add .planning/REQUIREMENTS.md`
     - Commit: `docs({phase}): complete {phase-name} phase`
 
-11. **Offer next steps**
+12. **Offer next steps**
     - Route to next action (see `<offer_next>`)
 </process>
 
@@ -214,17 +282,70 @@ After user runs /gsd/plan-phase {Z} --gaps:
 </offer_next>
 
 <wave_execution>
-**Parallel spawning:**
+**Parallel spawning with worktrees:**
 
-Spawn all plans in a wave with a single message containing multiple Task calls:
+For each wave, create worktrees and spawn all executors in a single message:
 
+```bash
+# 1. Create worktrees for each plan in wave
+git worktree add .worktrees/wt-{phase}-01 -b gsd/{phase}-01
+git worktree add .worktrees/wt-{phase}-02 -b gsd/{phase}-02
 ```
-Task(prompt="Execute plan at {plan_01_path}\n\nPlan: @{plan_01_path}\nProject state: @.planning/STATE.md", subagent_type="gsd-executor")
-Task(prompt="Execute plan at {plan_02_path}\n\nPlan: @{plan_02_path}\nProject state: @.planning/STATE.md", subagent_type="gsd-executor")
-Task(prompt="Execute plan at {plan_03_path}\n\nPlan: @{plan_03_path}\nProject state: @.planning/STATE.md", subagent_type="gsd-executor")
+
+```python
+# 2. Spawn all executors in ONE response for true parallelism
+Task(
+    subagent_type="gsd-executor",
+    description="Execute plan {phase}-01",
+    prompt=f"""
+Execute GSD plan in isolated worktree.
+
+Plan Path: {plan_01_path}
+Worktree Path: .worktrees/wt-{phase}-01
+Project Path: {absolute_project_path}
+Orchestrator Name: {ORCHESTRATOR_NAME}
+Phase: {phase}
+Plan: 01
+
+Load the plan and execute in worktree. Reserve files via Agent Mail.
+Commit in worktree. Send completion message to orchestrator.
+"""
+)
+
+Task(
+    subagent_type="gsd-executor",
+    description="Execute plan {phase}-02",
+    prompt=f"""
+Execute GSD plan in isolated worktree.
+
+Plan Path: {plan_02_path}
+Worktree Path: .worktrees/wt-{phase}-02
+Project Path: {absolute_project_path}
+Orchestrator Name: {ORCHESTRATOR_NAME}
+Phase: {phase}
+Plan: 02
+
+Load the plan and execute in worktree. Reserve files via Agent Mail.
+Commit in worktree. Send completion message to orchestrator.
+"""
+)
 ```
 
-All three run in parallel. Task tool blocks until all complete.
+All executors run in parallel. Task tool blocks until all complete.
+
+```bash
+# 3. After all complete, merge sequentially
+git merge gsd/{phase}-01 --no-ff -m "Merge gsd/{phase}-01: {plan_name}"
+# Run validation
+git merge gsd/{phase}-02 --no-ff -m "Merge gsd/{phase}-02: {plan_name}"
+# Run validation
+
+# 4. Cleanup
+git worktree remove .worktrees/wt-{phase}-01
+git worktree remove .worktrees/wt-{phase}-02
+git branch -d gsd/{phase}-01
+git branch -d gsd/{phase}-02
+```
 
 **No polling.** No background agents. No TaskOutput loops.
 </wave_execution>
