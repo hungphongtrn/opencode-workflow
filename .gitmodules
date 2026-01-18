@@ -1,0 +1,3 @@
+[submodule "get-shit-done"]
+	path = get-shit-done
+	url = git@github.com:glittercowboy/get-shit-done.git
