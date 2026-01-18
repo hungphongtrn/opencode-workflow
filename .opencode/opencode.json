@@ -1,5 +1,41 @@
 {
   "$schema": "https://opencode.ai/config.json",
+  "model": "minimax/MiniMax-M2.1",
+  "agent": {
+    "gsd-debugger": {
+      "model": "anthropic/claude-opus-4-5-20251101"
+    },
+    "gsd-plan-checker": {
+      "model": "anthropic/claude-opus-4-5-20251101"
+    },
+    "gsd-planner": {
+      "model": "anthropic/claude-opus-4-5-20251101"
+    },
+    "gsd-roadmapper": {
+      "model": "anthropic/claude-opus-4-5-20251101"
+    },
+    "gsd-verifier": {
+      "model": "anthropic/claude-opus-4-5-20251101"
+    },
+    "gsd-integration-checker": {
+      "model": "anthropic/claude-opus-4-5-20251101"
+    },
+    "gsd-codebase-mapper": {
+      "model": "google/gemini-3-flash"
+    },
+    "gsd-phase-researcher": {
+      "model": "google/gemini-3-flash"
+    },
+    "gsd-project-researcher": {
+      "model": "google/gemini-3-flash"
+    },
+    "gsd-research-synthesizer": {
+      "model": "google/gemini-3-flash"
+    },
+    "gsd-executor": {
+      "model": "minimax/MiniMax-M2.1"
+    }
+  },
   "mcp": {
     "mcp-agent-mail": {
       "type": "remote",
