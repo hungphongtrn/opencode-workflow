@@ -20,6 +20,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const readline = require('readline');
 
 // Colors (terminal)
 const cyan = '\x1b[36m';
@@ -27,6 +28,23 @@ const green = '\x1b[32m';
 const yellow = '\x1b[33m';
 const dim = '\x1b[2m';
 const reset = '\x1b[0m';
+
+const ALLOWED_TOOLS = [
+  'bash',
+  'edit',
+  'write',
+  'read',
+  'grep',
+  'glob',
+  'list',
+  'lsp',
+  'patch',
+  'skill',
+  'todowrite',
+  'todoread',
+  'webfetch',
+  'question',
+];
 
 function readPkgVersion(gsdDir) {
   try {
@@ -97,8 +115,8 @@ function rewriteContent(content, { pathPrefix }) {
   out = out.replace(/~\/\.claude\//g, pathPrefix);
   out = out.replace(/\.claude\//g, '.opencode/');
 
-  // Command naming: /gsd:foo -> /gsd-foo
-  out = out.replace(/\/gsd:([a-z0-9-]+)/gi, '/gsd-$1');
+  // Command naming: /gsd:foo -> /gsd/foo
+  out = out.replace(/\/gsd:([a-z0-9-]+)/gi, '/gsd/$1');
 
   return out;
 }
@@ -146,22 +164,7 @@ function normalizeOpenCodeTools(toolsLine) {
     LSP: 'lsp',
   };
 
-  const allowed = new Set([
-    'bash',
-    'edit',
-    'write',
-    'read',
-    'grep',
-    'glob',
-    'list',
-    'lsp',
-    'patch',
-    'skill',
-    'todowrite',
-    'todoread',
-    'webfetch',
-    'question',
-  ]);
+  const allowed = new Set(ALLOWED_TOOLS);
 
   const out = [];
   const seen = new Set();
@@ -237,7 +240,17 @@ function convertAgentMarkdown(srcContent) {
   fmOut.push('mode: subagent');
   if (tools.length > 0) {
     fmOut.push('tools:');
-    for (const t of tools) fmOut.push(`  - ${t}`);
+    const toolSet = new Set(tools);
+    // Standard tools record
+    for (const t of ALLOWED_TOOLS) {
+      fmOut.push(`  ${t}: ${toolSet.has(t)}`);
+    }
+    // MCP tools (always true if present)
+    for (const t of tools) {
+      if (t.startsWith('mcp__')) {
+        fmOut.push(`  ${t}: true`);
+      }
+    }
   }
   if (colorHex) fmOut.push(`color: "${colorHex}"`);
   fmOut.push('---');
@@ -284,14 +297,17 @@ function install({ gsdDir, isGlobal, globalBase }) {
   console.log(`  Installing to ${cyan}${locationLabel}${reset}\n`);
 
   // Clean only what we own
-  const commandsDir = path.join(targetRoot, 'commands');
-  if (fs.existsSync(commandsDir)) {
-    for (const file of fs.readdirSync(commandsDir)) {
+  const oldCommandsDir = path.join(targetRoot, 'commands');
+  if (fs.existsSync(oldCommandsDir)) {
+    for (const file of fs.readdirSync(oldCommandsDir)) {
       if (file.startsWith('gsd-') && file.endsWith('.md')) {
-        fs.unlinkSync(path.join(commandsDir, file));
+        fs.unlinkSync(path.join(oldCommandsDir, file));
       }
     }
   }
+
+  const commandsDir = path.join(targetRoot, 'command', 'gsd');
+  safeRm(commandsDir);
 
   const agentsDir = path.join(targetRoot, 'agents');
   if (fs.existsSync(agentsDir)) {
@@ -325,8 +341,7 @@ function install({ gsdDir, isGlobal, globalBase }) {
   const commandFiles = fs.readdirSync(commandsSrcDir).filter(f => f.endsWith('.md'));
   for (const file of commandFiles) {
     const srcPath = path.join(commandsSrcDir, file);
-    const cmdName = file.replace(/\.md$/, '');
-    const destPath = path.join(commandsDir, `gsd-${cmdName}.md`);
+    const destPath = path.join(commandsDir, file);
 
     const src = readUtf8(srcPath);
     const converted = convertCommandMarkdown(src);
@@ -360,7 +375,39 @@ function install({ gsdDir, isGlobal, globalBase }) {
     console.log(`  ${green}✓${reset} Removed hooks (not used for OpenCode)`);
   }
 
-  console.log(`\n  ${green}Done!${reset} In OpenCode, run ${cyan}/gsd-help${reset}.\n`);
+  console.log(`\n  ${green}Done!${reset} In OpenCode, run ${cyan}/gsd/help${reset}.\n`);
+}
+
+/**
+ * Prompt for install location
+ */
+function promptLocation({ gsdDir, globalBase }) {
+  // Check if stdin is a TTY
+  if (!process.stdin.isTTY) {
+    console.log(`  ${yellow}Non-interactive terminal detected, defaulting to local install${reset}\n`);
+    install({ gsdDir, isGlobal: false, globalBase });
+    return;
+  }
+
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+
+  const globalLabel = globalBase.replace(os.homedir(), '~');
+
+  console.log(`  ${yellow}Where would you like to install?${reset}
+
+  ${cyan}1${reset}) Global ${dim}(${globalLabel})${reset} - available in all projects
+  ${cyan}2${reset}) Local  ${dim}(./.opencode)${reset} - this project only
+`);
+
+  rl.question(`  Choice ${dim}[1]${reset}: `, (answer) => {
+    rl.close();
+    const choice = answer.trim() || '1';
+    const isGlobal = choice !== '2';
+    install({ gsdDir, isGlobal, globalBase });
+  });
 }
 
 // Main
@@ -416,6 +463,10 @@ if (!fs.existsSync(gsdDir)) {
   process.exit(1);
 }
 
-install({ gsdDir, isGlobal, globalBase });
+if (isGlobal || isLocal) {
+  install({ gsdDir, isGlobal, globalBase });
+} else {
+  promptLocation({ gsdDir, globalBase });
+}
 
 

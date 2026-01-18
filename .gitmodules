@@ -1,4 +1,4 @@
 [submodule "get-shit-done"]
 	path = get-shit-done
-	url = git@github.com:glittercowboy/get-shit-done.git
+	url = git@github.com:hungphongtrn/get-shit-done.git
 	branch = main
